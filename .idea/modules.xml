@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/buaaExchangeRearEnd.iml" filepath="$PROJECT_DIR$/.idea/buaaExchangeRearEnd.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/buaaExchange.iml" filepath="$PROJECT_DIR$/.idea/buaaExchange.iml" />
     </modules>
   </component>
 </project>
