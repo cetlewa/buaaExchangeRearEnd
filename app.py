@@ -8,6 +8,7 @@ from flask_cors import CORS
 
 from Class.Goods import Goods
 from Class.User import User
+from Class.GoodsPicture import GoodsPicture
 from Mysql import session, Base, engine
 
 app = Flask(__name__)
@@ -185,9 +186,26 @@ def submitGood():
 @app.route('/ImageUpload', methods=['POST', 'GET'])
 def imageUpload():
     if request.method == 'POST':
-        postForm = json.loads(request.get_data(as_text=True))
-        userId = postForm['userId']
-
+        # postForm = json.loads(request.get_data(as_text=True))
+        # print(postForm)
+        # userId = postForm['userId']
+        userId = request.values.get("userId")
+        goodId = request.values.get("goodId")
+        img = request.files.get('file')
+        path = basedir + "/static/img/" + userId + "/"
+        if not os.path.exists(path):
+            os.makedirs(path)
+        imgName = img.filename
+        if re.search("\.jpg$", imgName) is None \
+                and re.search("\.png$", imgName) is None \
+                and re.search("\.jpeg$", imgName) is None:
+            return "FormatError", 400
+        file_path = path + imgName
+        img.save(file_path)
+        relevant_path = "/static/img/" + userId + "/" + imgName
+        pic = GoodsPicture(goodId=goodId, picUrl=relevant_path)
+        pic.save()
+        return {"picUrl": relevant_path}
 
 
 @app.route('/QueryUserGoods', methods=['POST', 'GET'])
@@ -223,6 +241,55 @@ def queryUserGoods():
                 })
             goods_json = json.dumps(ansList, ensure_ascii=False)
             return goods_json
+
+
+@app.route('/QueryPictures', methods=['POST', 'GET'])
+def queryPictures():
+    if request.method == 'POST':
+        postForm = json.loads(request.get_data(as_text=True))
+        goodId = postForm['goodId']
+        if not session.query(Goods).filter(Goods.goodId == goodId).all():
+            return "IdNotFound", 400
+        else:
+            if not session.query(GoodsPicture).filter(GoodsPicture.goodId == goodId).all():
+                return "NoPicture", 401
+            pics = session.query(GoodsPicture).filter(GoodsPicture.goodId == goodId).all()
+            ansList = []
+            for pic in pics:
+                ansList.append({
+                    "value": 1,
+                    "picUrl": "http://127.0.0.1:5000" + pic.picUrl
+                })
+            goods_json = json.dumps(ansList, ensure_ascii=False)
+            return goods_json
+
+
+@app.route('/QueryGoodsInfo', methods=['POST', 'GET'])
+def queryGoodsInfo():
+    if request.method == 'POST':
+        postForm = json.loads(request.get_data(as_text=True))
+        goodId = postForm['goodId']
+        if not session.query(Goods).filter(Goods.goodId == goodId).all():
+            return "IdNotFound", 400
+        else:
+            good = session.query(Goods).filter(Goods.goodId == goodId).first()
+            goodType = ''
+            sellerId = good.sellerId
+            sellerName = session.query(User.userName).filter(User.userID == sellerId).first().userName
+            if good.goodType == '1':
+                goodType = "电子类"
+            elif good.goodType == '2':
+                goodType = "学习类"
+            elif good.goodType == '3':
+                goodType = "食品类"
+            ans = {
+                "goodName": good.goodName,
+                "goodType": goodType,
+                "goodDescription": good.goodDescription,
+                "goodPrice": good.goodPrice,
+                "sellerName": sellerName
+            }
+            return json.dumps(ans, ensure_ascii=False)
 
 
 if __name__ == '__main__':
